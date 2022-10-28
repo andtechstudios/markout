@@ -22,6 +22,12 @@ namespace Andtech.Markout.Console
 		public string Output { get; set; }
 	}
 
+	internal class Excerpt
+	{
+		public string Address { get; set; }
+		public string Text { get; set; }
+	}
+
 	public class Runner
 	{
 
@@ -49,7 +55,7 @@ namespace Andtech.Markout.Console
 				}
 
 				// Begin code
-				var excerpts = new Dictionary<Hashtag, List<string>>();
+				var excerptDictionary = new Dictionary<Hashtag, List<Excerpt>>();
 				var searchDir = contentRoot;
 				foreach (var path in Directory.EnumerateFiles(searchDir, "*.md", SearchOption.AllDirectories))
 				{
@@ -102,13 +108,7 @@ namespace Andtech.Markout.Console
 							continue;
 						}
 
-						// Compute excerpt
-						var sourcePath = relativePath;
-						sourcePath = Path.Combine(
-							Path.GetDirectoryName(sourcePath),
-							Path.GetFileNameWithoutExtension(sourcePath));
-
-						var address = $"/{sourcePath}";
+						// Check for heading
 						var match = RegexHeading.Match(line.Text);
 						if (match.Success)
 						{
@@ -131,30 +131,39 @@ namespace Andtech.Markout.Console
 							currentHeading = heading;
 						}
 
+						// Compute excerpt
+						var sourcePath = relativePath;
+						sourcePath = Path.Combine(
+							Path.GetDirectoryName(sourcePath),
+							Path.GetFileNameWithoutExtension(sourcePath));
+
+						var excerpt = new Excerpt()
+						{
+							Address = $"/{sourcePath}",
+							Text = string.Empty,
+						};
 						if (!string.IsNullOrEmpty(currentHeading))
 						{
-							address = $"{address}#{currentHeading}";
+							excerpt.Address = $"{excerpt.Address}#{currentHeading}";
 						}
 
 						// Compute excerpt
-						var excerpt = string.Empty;
-						excerpt += $"* [\\[Source\\]]({address})";
-						excerpt += " " + Regex.Replace(line.Text, @"^(>|\s|\*|(\d+\.))+", string.Empty);
+						excerpt.Text += Regex.Replace(line.Text, @"^(>|\s|\*|(\d+\.))+", string.Empty);
 						foreach (var hashtag in line.Hashtags)
 						{
-							excerpt += " " + Shortcode.Hashtag(hashtag.Value);
+							excerpt.Text += " " + Shortcode.Hashtag(hashtag.Value);
 						}
 
 						// Enqueue exerpt to all pages
 						foreach (var hashtag in line.Hashtags)
 						{
-							if (!excerpts.ContainsKey(hashtag))
+							if (!excerptDictionary.ContainsKey(hashtag))
 							{
-								var list = new List<string>();
-								excerpts.Add(hashtag, list);
+								var list = new List<Excerpt>();
+								excerptDictionary.Add(hashtag, list);
 							}
 
-							excerpts[hashtag].Add(excerpt);
+							excerptDictionary[hashtag].Add(excerpt);
 						}
 					}
 				}
@@ -162,7 +171,7 @@ namespace Andtech.Markout.Console
 				void GenerateHashtagsIndex()
 				{
 					var tokens = new List<string>();
-					foreach (var pair in excerpts.OrderBy(x => x.Key))
+					foreach (var pair in excerptDictionary.OrderBy(x => x.Key))
 					{
 						var label = $"#{pair.Key} ({pair.Value.Count})";
 						var shortcode = Shortcode.Hashtag(pair.Key.Value, label);
@@ -194,10 +203,10 @@ namespace Andtech.Markout.Console
 					int offset = 0;
 
 					// Compilation Pages
-					foreach (var pair in excerpts.OrderByDescending(x => x.Key))
+					foreach (var pair in excerptDictionary.OrderByDescending(x => x.Key))
 					{
 						var hashtag = pair.Key;
-						var snippets = pair.Value;
+						var excerpts = pair.Value;
 						var stubPath = Path.Combine(contentRoot, "hashtags", hashtag + ".md");
 						var destPath = Path.Combine(outputRoot, "hashtags", hashtag + ".md");
 
@@ -226,14 +235,14 @@ namespace Andtech.Markout.Console
 							);
 							content = initialText + Environment.NewLine;
 						}
-						foreach (var snippet in snippets.OrderBy(SortLine))
+						foreach (var excerpt in excerpts.OrderBy(SortLine))
 						{
-							content += snippet + Environment.NewLine;
+							content += $"* [\\[Source\\]]({excerpt.Address}) {excerpt.Text}{Environment.NewLine}";
 						}
 
-						string SortLine(string line)
+						string SortLine(Excerpt excerpt)
 						{
-							return Regex.Replace(line, @"[^\w]", string.Empty);
+							return Regex.Replace(excerpt.Text, @"[^\w]", string.Empty);
 						}
 
 						Directory.CreateDirectory(Path.GetDirectoryName(destPath));
