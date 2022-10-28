@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<Authors>Andtech Studios</Authors>
+		<RepositoryUrl>https://github.com/andtechstudios/markout</RepositoryUrl>
+		<Copyright>"© $(CompanyName) $([System.DateTime]::Now.ToString(`yyyy`))"</Copyright>
+
+		<TargetFramework>net6.0</TargetFramework>
+		<PackageId>Andtech.Markout</PackageId>
+		<RootNamespace>$(PackageId)</RootNamespace>
+	</PropertyGroup>
+	
+	<!-- NuGet Packages -->
+</Project>
