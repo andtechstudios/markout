@@ -25,6 +25,8 @@ namespace Andtech.Markout.Console
 	public class Runner
 	{
 
+		static readonly Regex RegexHeading = new Regex(@"^#+\s+(?<value>.+)");
+
 		public void Run(string[] args)
 		{
 			Parser.Default.ParseArguments<Options>(args)
@@ -40,7 +42,10 @@ namespace Andtech.Markout.Console
 
 				if (outputRoot != contentRoot)
 				{
-					Directory.Delete(outputRoot, true);
+					if (Directory.Exists(outputRoot))
+					{
+						Directory.Delete(outputRoot, true);
+					}
 				}
 
 				// Begin code
@@ -88,6 +93,8 @@ namespace Andtech.Markout.Console
 					Log.WriteLine($"Shortcodes processed to '{destPath}'", ConsoleColor.Cyan);
 
 					// Compute excepts
+					var headers = new Dictionary<string, int>();
+					string currentHeading = null;
 					foreach (var line in post.Content)
 					{
 						if (line.IsFenced)
@@ -101,9 +108,37 @@ namespace Andtech.Markout.Console
 							Path.GetDirectoryName(sourcePath),
 							Path.GetFileNameWithoutExtension(sourcePath));
 
+						var address = $"/{sourcePath}";
+						var match = RegexHeading.Match(line.Text);
+						if (match.Success)
+						{
+							var heading = match.Groups["value"].Value;
+							heading = heading.ToLower().Replace(' ', '-');
+
+							if (headers.ContainsKey(heading))
+							{
+								var count = headers[heading];
+								count += 1;
+								headers[heading] = count;
+
+								heading += "-" + (count - 1);
+							}
+							else
+							{
+								headers.Add(heading, 1);
+							}
+
+							currentHeading = heading;
+						}
+
+						if (!string.IsNullOrEmpty(currentHeading))
+						{
+							address = $"{address}#{currentHeading}";
+						}
+
 						// Compute excerpt
 						var excerpt = string.Empty;
-						excerpt += $"* [\\[Source\\]](/{sourcePath})";
+						excerpt += $"* [\\[Source\\]]({address})";
 						excerpt += " " + Regex.Replace(line.Text, @"^(>|\s|\*|(\d+\.))+", string.Empty);
 						foreach (var hashtag in line.Hashtags)
 						{
