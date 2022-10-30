@@ -178,8 +178,8 @@ namespace Andtech.Markout.Console
 						tokens.Add(shortcode);
 					}
 
-					var stubPath = Path.Combine(contentRoot, "_hashtags.md");
-					var destPath = Path.Combine(outputRoot, "_hashtags.md");
+					var stubPath = Path.Combine(contentRoot, "tags.md");
+					var destPath = Path.Combine(outputRoot, "tags.md");
 
 					var content = Macros.JoinLine(
 						"<div class=\"hashtags\">",
@@ -207,8 +207,8 @@ namespace Andtech.Markout.Console
 					{
 						var hashtag = pair.Key;
 						var excerpts = pair.Value;
-						var stubPath = Path.Combine(contentRoot, "hashtags", hashtag + ".md");
-						var destPath = Path.Combine(outputRoot, "hashtags", hashtag + ".md");
+						var stubPath = Path.Combine(contentRoot, "tags", hashtag + ".md");
+						var destPath = Path.Combine(outputRoot, "tags", hashtag + ".md");
 
 						string content;
 						if (File.Exists(stubPath))
@@ -247,7 +247,7 @@ namespace Andtech.Markout.Console
 
 						Directory.CreateDirectory(Path.GetDirectoryName(destPath));
 						File.WriteAllText(destPath, content);
-						Log.WriteLine($"Created hashtag page '{destPath}'", ConsoleColor.Cyan);
+						Log.WriteLine($"Created tag page '{destPath}'", ConsoleColor.Cyan);
 					}
 				}
 			}
